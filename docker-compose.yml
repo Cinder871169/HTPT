@@ -69,9 +69,10 @@ services:
       - .env
     environment:
       - USER_SERVICE_URL=http://user-service:3001
-      # Các service sau chưa tạo nên tạm trỏ localhost để tránh lỗi
+      # Đã cập nhật Order Service trỏ vào container
+      - ORDER_SERVICE_URL=http://order-service:3003
+      # Các service sau chưa tạo nên tạm trỏ localhost
       - RESTAURANT_SERVICE_URL=http://localhost:3002
-      - ORDER_SERVICE_URL=http://localhost:3003
       - NOTIFICATION_SERVICE_URL=http://localhost:3004
       - JWT_SECRET=food-ordering-jwt-secret-key-2024
       - API_GATEWAY_PORT=3000
@@ -81,6 +82,9 @@ services:
       kafka:
         condition: service_healthy
       user-service:
+        condition: service_started
+      # Đợi order-service khởi động trước
+      order-service:
         condition: service_started
     networks:
       - app-network
@@ -102,6 +106,28 @@ services:
       - JWT_SECRET=food-ordering-jwt-secret-key-2024
     depends_on:
       mongodb:
+        condition: service_healthy
+    networks:
+      - app-network
+
+  # Thêm cấu hình cho Order Service
+  order-service:
+    build: ./order-service
+    container_name: food-ordering-order-service
+    restart: unless-stopped
+    ports:
+      - '3003:3003'
+    env_file:
+      - .env
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017/food_orders_db
+      - ORDER_SERVICE_PORT=3003
+      # Sử dụng PLAINTEXT_INTERNAL (port 29092) để các container giao tiếp Kafka nội bộ với nhau
+      - KAFKA_BROKERS=kafka:29092 
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
     networks:
       - app-network
