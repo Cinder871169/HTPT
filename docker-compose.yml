@@ -69,11 +69,11 @@ services:
       - .env
     environment:
       - USER_SERVICE_URL=http://user-service:3001
-      # Đã cập nhật Order Service trỏ vào container
       - ORDER_SERVICE_URL=http://order-service:3003
-      # Các service sau chưa tạo nên tạm trỏ localhost
+      # Đã cập nhật Notification Service trỏ vào container
+      - NOTIFICATION_SERVICE_URL=http://notification-service:3004
+      # Service này chưa tạo nên tạm trỏ localhost
       - RESTAURANT_SERVICE_URL=http://localhost:3002
-      - NOTIFICATION_SERVICE_URL=http://localhost:3004
       - JWT_SECRET=food-ordering-jwt-secret-key-2024
       - API_GATEWAY_PORT=3000
     depends_on:
@@ -83,8 +83,10 @@ services:
         condition: service_healthy
       user-service:
         condition: service_started
-      # Đợi order-service khởi động trước
       order-service:
+        condition: service_started
+      # Đợi notification-service khởi động trước
+      notification-service:
         condition: service_started
     networks:
       - app-network
@@ -110,7 +112,6 @@ services:
     networks:
       - app-network
 
-  # Thêm cấu hình cho Order Service
   order-service:
     build: ./order-service
     container_name: food-ordering-order-service
@@ -122,7 +123,27 @@ services:
     environment:
       - MONGODB_URI=mongodb://mongodb:27017/food_orders_db
       - ORDER_SERVICE_PORT=3003
-      # Sử dụng PLAINTEXT_INTERNAL (port 29092) để các container giao tiếp Kafka nội bộ với nhau
+      - KAFKA_BROKERS=kafka:29092 
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - app-network
+
+  # Thêm cấu hình cho Notification Service
+  notification-service:
+    build: ./notification-service
+    container_name: food-ordering-notification-service
+    restart: unless-stopped
+    ports:
+      - '3004:3004'
+    env_file:
+      - .env
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017/food_notifications_db
+      - NOTIFICATION_SERVICE_PORT=3004
       - KAFKA_BROKERS=kafka:29092 
     depends_on:
       mongodb:
