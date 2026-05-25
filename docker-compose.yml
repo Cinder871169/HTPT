@@ -72,8 +72,7 @@ services:
       - ORDER_SERVICE_URL=http://order-service:3003
       # Đã cập nhật Notification Service trỏ vào container
       - NOTIFICATION_SERVICE_URL=http://notification-service:3004
-      # Service này chưa tạo nên tạm trỏ localhost
-      - RESTAURANT_SERVICE_URL=http://localhost:3002
+      - RESTAURANT_SERVICE_URL=http://restaurant-service:3002
       - JWT_SECRET=food-ordering-jwt-secret-key-2024
       - API_GATEWAY_PORT=3000
     depends_on:
@@ -82,6 +81,8 @@ services:
       kafka:
         condition: service_healthy
       user-service:
+        condition: service_started
+      restaurant-service:
         condition: service_started
       order-service:
         condition: service_started
@@ -108,6 +109,26 @@ services:
       - JWT_SECRET=food-ordering-jwt-secret-key-2024
     depends_on:
       mongodb:
+        condition: service_healthy
+    networks:
+      - app-network
+
+  restaurant-service:
+    build: ./restaurant-service
+    container_name: food-ordering-restaurant-service
+    restart: unless-stopped
+    ports:
+      - '3002:3002'
+    env_file:
+      - .env
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017/food_restaurants_db
+      - RESTAURANT_SERVICE_PORT=3002
+      - KAFKA_BROKERS=kafka:29092
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
     networks:
       - app-network

@@ -1,4 +1,4 @@
-const { createProxyMiddleware } = require('http-proxy-middleware');
+const { createProxyMiddleware, fixRequestBody } = require('http-proxy-middleware');
 const { PROXY_CONFIG } = require('../config/proxy');
 const { authLimiter } = require('../middleware/rateLimiter');
 const { logger } = require('../middleware/logger');
@@ -26,7 +26,7 @@ const setupRoutes = (app) => {
       },
 
       // Inject custom correlation & user identity headers into proxy request
-      onProxyReq: (proxyReq, req) => {
+      onProxyReq: (proxyReq, req, res) => {
         if (req.correlationId) {
           proxyReq.setHeader('x-correlation-id', req.correlationId);
         }
@@ -42,13 +42,7 @@ const setupRoutes = (app) => {
           proxyReq.setHeader('x-user-email', req.headers['x-user-email']);
         }
 
-        // FIX: Re-serialize req.body to prevent the proxy from hanging infinitely due to Express body-parser consumption
-        if (req.body && Object.keys(req.body).length > 0) {
-          const bodyData = JSON.stringify(req.body);
-          proxyReq.setHeader('Content-Type', 'application/json');
-          proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
-          proxyReq.write(bodyData);
-        }
+        fixRequestBody(proxyReq, req, res);
       }
     };
 
