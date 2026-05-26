@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   # ──────────────────────────────────────────────
@@ -9,7 +9,7 @@ services:
     container_name: food-ordering-mongodb
     restart: unless-stopped
     ports:
-      - '27017:27017'
+      - "27017:27017"
     volumes:
       - mongo_data:/data/db
     networks:
@@ -36,7 +36,7 @@ services:
     container_name: food-ordering-kafka
     restart: unless-stopped
     ports:
-      - '9092:9092'
+      - "9092:9092"
     depends_on:
       - zookeeper
     environment:
@@ -50,7 +50,11 @@ services:
     networks:
       - app-network
     healthcheck:
-      test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:9092 --list || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "kafka-topics --bootstrap-server localhost:9092 --list || exit 1",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -64,15 +68,14 @@ services:
     container_name: food-ordering-api-gateway
     restart: unless-stopped
     ports:
-      - '3000:3000'
+      - "3000:3000"
     env_file:
       - .env
     environment:
       - USER_SERVICE_URL=http://user-service:3001
-      - ORDER_SERVICE_URL=http://order-service:3003
-      # Đã cập nhật Notification Service trỏ vào container
-      - NOTIFICATION_SERVICE_URL=http://notification-service:3004
       - RESTAURANT_SERVICE_URL=http://restaurant-service:3002
+      - ORDER_SERVICE_URL=http://order-service:3003
+      - NOTIFICATION_SERVICE_URL=http://notification-service:3004
       - JWT_SECRET=food-ordering-jwt-secret-key-2024
       - API_GATEWAY_PORT=3000
     depends_on:
@@ -86,21 +89,20 @@ services:
         condition: service_started
       order-service:
         condition: service_started
-      # Đợi notification-service khởi động trước
       notification-service:
         condition: service_started
     networks:
       - app-network
 
   # ──────────────────────────────────────────────
-  # Microservices
+  # User Service (Cổng 3001)
   # ──────────────────────────────────────────────
   user-service:
     build: ./user-service
     container_name: food-ordering-user-service
     restart: unless-stopped
     ports:
-      - '3001:3001'
+      - "3001:3001"
     env_file:
       - .env
     environment:
@@ -113,18 +115,21 @@ services:
     networks:
       - app-network
 
+  # ──────────────────────────────────────────────
+  # Restaurant Service (Cổng 3002)
+  # ──────────────────────────────────────────────
   restaurant-service:
     build: ./restaurant-service
     container_name: food-ordering-restaurant-service
     restart: unless-stopped
     ports:
-      - '3002:3002'
+      - "3002:3002"
     env_file:
       - .env
     environment:
       - MONGODB_URI=mongodb://mongodb:27017/food_restaurants_db
-      - RESTAURANT_SERVICE_PORT=3002
       - KAFKA_BROKERS=kafka:29092
+      - RESTAURANT_SERVICE_PORT=3002
     depends_on:
       mongodb:
         condition: service_healthy
@@ -133,18 +138,21 @@ services:
     networks:
       - app-network
 
+  # ──────────────────────────────────────────────
+  # Order Service (Cổng 3003)
+  # ──────────────────────────────────────────────
   order-service:
     build: ./order-service
     container_name: food-ordering-order-service
     restart: unless-stopped
     ports:
-      - '3003:3003'
+      - "3003:3003"
     env_file:
       - .env
     environment:
       - MONGODB_URI=mongodb://mongodb:27017/food_orders_db
+      - KAFKA_BROKERS=kafka:29092
       - ORDER_SERVICE_PORT=3003
-      - KAFKA_BROKERS=kafka:29092 
     depends_on:
       mongodb:
         condition: service_healthy
@@ -153,19 +161,21 @@ services:
     networks:
       - app-network
 
-  # Thêm cấu hình cho Notification Service
+  # ──────────────────────────────────────────────
+  # Notification Service (Cổng 3004)
+  # ──────────────────────────────────────────────
   notification-service:
     build: ./notification-service
     container_name: food-ordering-notification-service
     restart: unless-stopped
     ports:
-      - '3004:3004'
+      - "3004:3004"
     env_file:
       - .env
     environment:
       - MONGODB_URI=mongodb://mongodb:27017/food_notifications_db
+      - KAFKA_BROKERS=kafka:29092
       - NOTIFICATION_SERVICE_PORT=3004
-      - KAFKA_BROKERS=kafka:29092 
     depends_on:
       mongodb:
         condition: service_healthy
