@@ -1,14 +1,14 @@
-# SunStack — Enterprise-Grade Intelligent Food Ordering & Event-Driven Microservices Platform
+# SunStack — Nền tảng Đặt Đồ Ăn Thông Minh & Kiến Trúc Microservices Hướng Sự Kiện Cấp Doanh Nghiệp
 
-SunStack la mot he thong dat do an truc tuyen o cap do doanh nghiep (enterprise-grade), duoc xay dung tren kien truc microservices phan tan huong su kien (Event-Driven Architecture). He thong tu dong hoa toan bo luong nghiep vu tu luc khach hang dat mon, dong bo tru/hoan kho thoi gian thuc, gui thong bao da kenh va bao mat phan quyen nghiem ngat. 
+SunStack là một hệ thống đặt đồ ăn trực tuyến cấp doanh nghiệp (enterprise-grade), được xây dựng trên kiến trúc microservices phân tán hướng sự kiện (Event-Driven Architecture). Hệ thống tự động hóa toàn bộ luồng nghiệp vụ từ lúc khách hàng đặt món, đồng bộ trừ/hoàn kho thời gian thực, gửi thông báo đa kênh và bảo mật phân quyền nghiêm ngặt. 
 
-SunStack su dung RESTful APIs dong bo thong qua API Gateway cho cac luong nghiep vu chan va Apache Kafka cho cac luong giao tiep bat dong bo on dinh, ben bi giua cac dich vu phan tan.
+SunStack sử dụng RESTful APIs đồng bộ thông qua API Gateway cho các luồng nghiệp vụ chặn và Apache Kafka cho các luồng giao tiếp bất đồng bộ ổn định, bền bỉ giữa các dịch vụ phân tán.
 
 ---
 
-## 🏗 Kien truc he thong & Hop dong Su kien (Event Contracts)
+## 🏗 Kiến trúc hệ thống & Hợp đồng Sự kiện (Event Contracts)
 
-He thong gom 5 thanh phan chinh va cac ha tang bo tro giao tiep bat dong bo thong qua Apache Kafka va dong bo qua Nginx API Gateway.
+Hệ thống gồm 5 thành phần chính và các hạ tầng bổ trợ giao tiếp bất đồng bộ thông qua Apache Kafka và đồng bộ qua Nginx API Gateway.
 
 ```mermaid
 graph TB
@@ -49,130 +49,130 @@ graph TB
     NS --> MG1
 ```
 
-### Hop dong Su kien bat dong bo (Apache Kafka - Topic: `order-events`)
-* **`ORDER_CREATED`**: Duoc phat di boi `Order Service` khi khach hang dat don hang thanh cong.
-  * *Restaurant Service* tieu thu (consume) de tu dong tru kho (stock) cua mon an.
-  * *Notification Service* tieu thu de tao va phat thong bao thoi gian thuc cho khach hang: "Don hang moi duoc tao thanh cong".
-* **`ORDER_STATUS_CHANGED`**: Duoc phat di boi `Order Service` khi chu nha hang cap nhat trang thai don (tu PENDING sang CONFIRMED, PREPARING, DELIVERING, DELIVERED).
-  * *Notification Service* tieu thu de gui thong bao cap nhat trang thai thoi gian thuc cho khach hang.
-* **`ORDER_CANCELLED`**: Duoc phat di khi don hang bi huy boi khach hang hoac he thong.
-  * *Restaurant Service* tieu thu de tu dong hoan lai so luong kho cho mon an.
-  * *Notification Service* tieu thu de gui thong bao huy don toi nguoi dung.
+### Hợp đồng Sự kiện bất đồng bộ (Apache Kafka - Topic: `order-events`)
+* **`ORDER_CREATED`**: Được phát đi bởi `Order Service` khi khách hàng đặt đơn hàng thành công.
+  * *Restaurant Service* tiêu thụ (consume) để tự động trừ kho (stock) của món ăn.
+  * *Notification Service* tiêu thụ để tạo và phát thông báo thời gian thực cho khách hàng: "Đơn hàng mới được tạo thành công".
+* **`ORDER_STATUS_CHANGED`**: Được phát đi bởi `Order Service` khi chủ nhà hàng cập nhật trạng thái đơn (từ PENDING sang CONFIRMED, PREPARING, DELIVERING, DELIVERED).
+  * *Notification Service* tiêu thụ để gửi thông báo cập nhật trạng thái thời gian thực cho khách hàng.
+* **`ORDER_CANCELLED`**: Được phát đi khi đơn hàng bị hủy bởi khách hàng hoặc hệ thống.
+  * *Restaurant Service* tiêu thụ để tự động hoàn lại số lượng kho cho món ăn.
+  * *Notification Service* tiêu thụ để gửi thông báo hủy đơn tới người dùng.
 
-### Co che chiu loi & Dead Letter Queue (DLQ) (Muc 5.4)
-De doi pho voi su co mang va tranh lam nghen luong cua Stream chinh:
-* **Manual Commit Offset**: Consumer chi thuc hien commit offset thu cong len Kafka khi luong nghiep vu ghi vao database phia duoi hoan tat thanh cong (tuong duong co che `XACK` trong Redis Streams).
-* **Retry Backoff Loop**: Neu xay ra loi, he thong khong commit va tu dong thu lai tin nhan do 3 lan voi thoi gian tre tang dan de doi pho cac loi ket noi tam thoi.
-* **DLQ Routing**: Sau 3 lan thu lai that bai, tin nhan loi kem stack trace se duoc tu dong day sang hang doi chet **`order-events:dlq`** de khoi phuc sau va giai phong cho stream chinh tiep tuc chay.
+### Cơ chế chịu lỗi & Dead Letter Queue (DLQ) (Mục 5.4)
+Để đối phó với sự cố mạng và tránh làm nghẽn luồng của Stream chính:
+* **Manual Commit Offset**: Consumer chỉ thực hiện commit offset thủ công lên Kafka khi luồng nghiệp vụ ghi vào database phía dưới hoàn tất thành công (tương đương cơ chế `XACK` trong Redis Streams).
+* **Retry Backoff Loop**: Nếu xảy ra lỗi, hệ thống không commit và tự động thử lại tin nhắn đó 3 lần với thời gian trễ tăng dần để đối phó các lỗi kết nối tạm thời.
+* **DLQ Routing**: Sau 3 lần thử lại thất bại, tin nhắn lỗi kèm stack trace sẽ được tự động đẩy sang hàng đợi chết **`order-events:dlq`** để khôi phục sau và giải phóng cho stream chính tiếp tục chạy.
 
 ---
 
-## 🛠 Bang Tong quan Cong nghe (Tech Stack)
+## 🛠 Bảng Tổng quan Công nghệ (Tech Stack)
 
-| Dich vu | Cong nghe / Framework | Vai tro chinh | Port (Internal) | Port (Host) |
+| Dịch vụ | Công nghệ / Framework | Vai trò chính | Port (Nội bộ) | Port (Host) |
 | :--- | :--- | :--- | :--- | :--- |
-| **Web Client** | React, Vite, TS, Vanilla CSS | Giao dien nguoi dung & Dashboard Admin/Owner | `80` | `80` |
-| **API Gateway** | Nginx | Rate-limiting, CORS, dinh tuyen reverse proxy | `80` | `3000` |
-| **User Service** | Node.js, Express, Mongoose | Quan ly xac thuc, profile va quyen Admin | `3001` | `3001` |
-| **Restaurant Service** | Node.js, Express, Mongoose, KafkaJS | Quan ly cua hang, thuc don va dong bo kho hang | `3002` | `3002` |
-| **Order Service** | Node.js, Express, Mongoose, KafkaJS | Quan ly dat hang, trang thai va phat su kien Kafka | `3003` | `3003` |
-| **Notification Service** | Node.js, Express, Mongoose, KafkaJS | Tieu thu su kien Kafka de gui thong bao thoi gian thuc | `3004` | `3004` |
-| **MongoDB** | mongo:7 (Official Image) | He co so du lieu NoSQL cho toan bo he thong | `27017` | `27017` |
-| **Kafka Broker** | confluentinc/cp-kafka:7.5.0 | Ha tang Message Broker truyen nhan su kien phan tan | `29092` | `9092` |
+| **Web Client** | React, Vite, TS, Vanilla CSS | Giao diện người dùng & Dashboard Admin/Owner | `80` | `80` |
+| **API Gateway** | Nginx | Rate-limiting, CORS, định tuyến reverse proxy | `80` | `3000` |
+| **User Service** | Node.js, Express, Mongoose | Quản lý xác thực, profile và quyền Admin | `3001` | `3001` |
+| **Restaurant Service** | Node.js, Express, Mongoose, KafkaJS | Quản lý cửa hàng, thực đơn và đồng bộ kho hàng | `3002` | `3002` |
+| **Order Service** | Node.js, Express, Mongoose, KafkaJS | Quản lý đặt hàng, trạng thái và phát sự kiện Kafka | `3003` | `3003` |
+| **Notification Service** | Node.js, Express, Mongoose, KafkaJS | Tiêu thụ sự kiện Kafka để gửi thông báo thời gian thực | `3004` | `3004` |
+| **MongoDB** | mongo:7 (Official Image) | Hệ cơ sở dữ liệu NoSQL cho toàn bộ hệ thống | `27017` | `27017` |
+| **Kafka Broker** | confluentinc/cp-kafka:7.5.0 | Hạ tầng Message Broker truyền nhận sự kiện phân tán | `29092` | `9092` |
 
 ---
 
-## 🚀 Huong dan Khoi dong Nhanh (Quick Start)
+## 🚀 Hướng dẫn Khởi động Nhanh (Quick Start)
 
-### Yeu cau truoc khi chay (Prerequisites)
-* **Docker** va **Docker Compose** phien ban moi nhat phai duoc bat va dang chay.
-* Trinh duyet web bat ky (Chrome, Safari, Edge).
+### Yêu cầu trước khi chạy (Prerequisites)
+* **Docker** và **Docker Compose** phiên bản mới nhất phải được bật và đang chạy.
+* Trình duyệt web bất kỳ (Chrome, Safari, Edge).
 
-### Cac buoc khoi dong he thong
-1. **Truy cap thu muc du an**:
+### Các bước khởi động hệ thống
+1. **Truy cập thư mục dự án**:
    ```bash
    cd c:/Users/Admin/Documents/HTPT
    ```
-2. **Khoi dong toan bo cum he thong (Datached Mode)**:
+2. **Khởi động toàn bộ cụm hệ thống (Detached Mode)**:
    ```bash
    docker compose up -d --build
    ```
-3. **Kiem tra suc khoe he thong**:
-   Xac nhan tat ca 10 container (bao gom ca Zookeeper, Kafka, Mongo Express) deu dang o trang thai khoe manh (`healthy` / `Up`):
+3. **Kiểm tra sức khỏe hệ thống**:
+   Xác nhận tất cả 10 container (bao gồm cả Zookeeper, Kafka, Mongo Express) đều đang ở trạng thái khỏe mạnh (`healthy` / `Up`):
    ```bash
    docker compose ps
    ```
 
 ---
 
-## 📋 Tham chieu Bien Moi truong (.env Reference)
+## 📋 Tham chiếu Biến Môi trường (.env Reference)
 
-Duoi du an co san file cau hinh `.env` chung duoc su dung boi cac container Docker:
+Dưới dự án có sẵn file cấu hình `.env` chung được sử dụng bởi các container Docker:
 
-| Bien | Mo ta | Vi du mac dinh |
+| Biến | Mô tả | Ví dụ mặc định |
 | :--- | :--- | :--- |
-| `JWT_SECRET` | Khoa bi mat dung de ky va xac thuc token JWT cua user | `food-ordering-jwt-secret-key-2024` |
-| `MONGODB_URI` | Chuoi ket noi MongoDB noi bo (moi service se dung rieng biet database) | `mongodb://mongodb:27017` |
-| `KAFKA_BROKERS` | Dia chi may chu Kafka noi bo trong mang Docker | `kafka:29092` |
+| `JWT_SECRET` | Khóa bí mật dùng để ký và xác thực token JWT của user | `food-ordering-jwt-secret-key-2024` |
+| `MONGODB_URI` | Chuỗi kết nối MongoDB nội bộ (mỗi service sẽ dùng riêng biệt database) | `mongodb://mongodb:27017` |
+| `KAFKA_BROKERS` | Địa chỉ máy chủ Kafka nội bộ trong mạng Docker | `kafka:29092` |
 
 ---
 
-## 📖 Tai lieu dac ta he thong API (API Documentation)
+## 📖 Tài liệu đặc tả hệ thống API (API Documentation)
 
-API Gateway Nginx dung cong tap trung `3000` de dieu phoi yeu cau. Duoi day la bang dac ta API:
+API Gateway Nginx dùng cổng tập trung `3000` để điều phối yêu cầu. Dưới đây là bảng đặc tả API:
 
 ### 1. Gateway Service
-* `GET /health`: Kiem tra trang thai API Gateway va cac dich vu phia duoi.
+* `GET /health`: Kiểm tra trạng thái API Gateway và các dịch vụ phía dưới.
 
 ### 2. Auth & User Service
-* `POST /api/auth/register`: Dang ky tai khoan nguoi dung moi.
-* `POST /api/auth/login`: Dang nhap vao he thong va lay JWT Token.
-* `GET /api/users/profile`: Lay profile cua user hien tai (Auth required).
-* `PUT /api/users/profile`: Cap nhat thong tin ca nhan (Auth required).
-* `GET /api/users`: Lay toan bo nguoi dung (Admin only).
-* `DELETE /api/users/:id`: Xoa tai khoan nguoi dung (Admin only).
+* `POST /api/auth/register`: Đăng ký tài khoản người dùng mới.
+* `POST /api/auth/login`: Đăng nhập vào hệ thống và lấy JWT Token.
+* `GET /api/users/profile`: Lấy profile của user hiện tại (Auth required).
+* `PUT /api/users/profile`: Cập nhật thông tin cá nhân (Auth required).
+* `GET /api/users`: Lấy toàn bộ người dùng (Admin only).
+* `DELETE /api/users/:id`: Xóa tài khoản người dùng (Admin only).
 
 ### 3. Restaurant Service
-* `GET /api/restaurants`: Lay danh sach nha hang dang hoat dong (Public).
-* `POST /api/restaurants`: Tao nha hang moi (Owner only).
-* `PUT /api/restaurants/:id`: Cap nhat thong tin nha hang (Owner / Admin).
-* `GET /api/restaurants/:id/menu`: Lay thuc don nha hang (Public).
-* `POST /api/restaurants/:id/menu`: Them mon an vao thuc don (Owner only).
+* `GET /api/restaurants`: Lấy danh sách nhà hàng đang hoạt động (Public).
+* `POST /api/restaurants`: Tạo nhà hàng mới (Owner only).
+* `PUT /api/restaurants/:id`: Cập nhật thông tin nhà hàng (Owner / Admin).
+* `GET /api/restaurants/:id/menu`: Lấy thực đơn nhà hàng (Public).
+* `POST /api/restaurants/:id/menu`: Thêm món ăn vào thực đơn (Owner only).
 
 ### 4. Order Service
-* `POST /api/orders`: Khach hang tao don hang moi (Auth required).
-* `GET /api/orders`: Lay lich su don hang cua khach hang hien tai (Auth required).
-* `PUT /api/orders/:id/status`: Cap nhat trang thai don hang (Owner / Admin).
+* `POST /api/orders`: Khách hàng tạo đơn hàng mới (Auth required).
+* `GET /api/orders`: Lấy lịch sử đơn hàng của khách hàng hiện tại (Auth required).
+* `PUT /api/orders/:id/status`: Cập nhật trạng thái đơn hàng (Owner / Admin).
 
 ### 5. Notification Service
-* `GET /api/notifications`: Lay danh sach thong bao cua nguoi dung (Auth required).
-* `PUT /api/notifications/:id/read`: Danh dau thong bao la da doc (Auth required).
+* `GET /api/notifications`: Lấy danh sách thông báo của người dùng (Auth required).
+* `PUT /api/notifications/:id/read`: Đánh dấu thông báo là đã đọc (Auth required).
 
 ---
 
-## 🧪 Huong dan Chay kiem thu (Testing Guide)
+## 🧪 Hướng dẫn Chạy kiểm thử (Testing Guide)
 
-He thong tich hop san 2 kịch ban kiem thu tu dong hoa E2E (End-to-End Regression) va bao mat rat manh me.
+Hệ thống tích hợp sẵn 2 kịch bản kiểm thử tự động hóa E2E (End-to-End Regression) và bảo mật rất mạnh mẽ.
 
-### 1. Kich ban kiem thu luong nghiep vu tich hop (`full-flow.test.js`)
-Mo terminal va chay lenh de gia lap toan bo luong tu: Dang ky -> Dang nhap -> Tao nha hang -> Them mon -> Dat hang -> **Kafka tu dong tru kho** -> Thay doi trang thai don -> Huy don -> **Kafka tu dong hoan kho** -> Verification:
+### 1. Kịch bản kiểm thử luồng nghiệp vụ tích hợp (`full-flow.test.js`)
+Mở terminal và chạy lệnh để giả lập toàn bộ luồng từ: Đăng ký -> Đăng nhập -> Tạo nhà hàng -> Thêm món -> Đặt hàng -> **Kafka tự động trừ kho** -> Thay đổi trạng thái đơn -> Hủy đơn -> **Kafka tự động hoàn kho** -> Verification:
 ```bash
 cd tests && npm install && node integration/full-flow.test.js
 ```
 
-### 2. Kich ban kiem thu xac thuc & phan quyen bao mat (`auth-flow.test.js`)
-Kiem tra tinh nang phan quyen (Customer khong the truy cap API cua Admin, JWT Token het han tu dong bi chan boi Gateway):
+### 2. Kịch bản kiểm thử xác thực & phân quyền bảo mật (`auth-flow.test.js`)
+Kiểm tra tính năng phân quyền (Customer không thể truy cập API của Admin, JWT Token hết hạn tự động bị chặn bởi Gateway):
 ```bash
 cd tests && node integration/auth-flow.test.js
 ```
 
 ---
 
-## 📈 Tinh nang Giam sat & Ghi Nhat ky (Logging & Resiliency Logs)
+## 📈 Tính năng Giám sát & Ghi Nhật ký (Logging & Resiliency Logs)
 
-He thong ap dung kieu logging da tang o cap do doanh nghiep:
-* **Real-time Console Logs**: Bat va doc nhanh thong tin bang lenh `docker compose logs -f [service-name]`.
-* **Central Winston File Logs**: Logs duoc ghi nhan va ghi de ben bi trong container tai:
-  * `/usr/src/app/logs/error.log`: Luu vet loi cuc bo de phuc vu debug.
-  * `/usr/src/app/logs/combined.log`: Ghi nhan toan bo thong tin hoat dong chung cua he thong phan tan.
-* **Database Startup Resilience**: Khi MongoDB cua he thong khoi dong tre hon, cac Microservices se tu dong nhan dien, ghi logs va thu ket noi lai 5 lan moi 5 giay giup he thong khoi dong thuc te rat on dinh va khong bi sap do.
+Hệ thống áp dụng kiểu logging đa tầng ở cấp độ doanh nghiệp:
+* **Real-time Console Logs**: Bắt và đọc nhanh thông tin bằng lệnh `docker compose logs -f [service-name]`.
+* **Central Winston File Logs**: Logs được ghi nhận và ghi đè bền bỉ trong container tại:
+  * `/usr/src/app/logs/error.log`: Lưu vết lỗi cục bộ để phục vụ debug.
+  * `/usr/src/app/logs/combined.log`: Ghi nhận toàn bộ thông tin hoạt động chung của hệ thống phân tán.
+* **Database Startup Resilience**: Khi MongoDB của hệ thống khởi động trễ hơn, các Microservices sẽ tự động nhận diện, ghi logs và thử kết nối lại 5 lần mỗi 5 giây giúp hệ thống khởi động thực tế rất ổn định và không bị sập đổ.
