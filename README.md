@@ -1,8 +1,16 @@
+<<<<<<< HEAD
 # FoodDash — Nền tảng Đặt Đồ Ăn Thông Minh & Kiến Trúc Microservices Hướng Sự Kiện Cấp Doanh Nghiệp
 
 FoodDash là một hệ thống đặt đồ ăn trực tuyến cấp doanh nghiệp (enterprise-grade), được xây dựng trên kiến trúc microservices phân tán hướng sự kiện (Event-Driven Architecture). Hệ thống tự động hóa toàn bộ luồng nghiệp vụ từ lúc khách hàng đặt món, đồng bộ trừ/hoàn kho thời gian thực, gửi thông báo đa kênh và bảo mật phân quyền nghiêm ngặt. 
 
 FoodDash sử dụng RESTful APIs đồng bộ thông qua API Gateway cho các luồng nghiệp vụ chặn và Apache Kafka cho các luồng giao tiếp bất đồng bộ ổn định, bền bỉ giữa các dịch vụ phân tán.
+=======
+# SunStack — Nền tảng Đặt Đồ Ăn Thông Minh & Kiến Trúc Microservices Hướng Sự Kiện Cấp Doanh Nghiệp
+
+SunStack là một hệ thống đặt đồ ăn trực tuyến cấp doanh nghiệp (enterprise-grade), được xây dựng trên kiến trúc microservices phân tán hướng sự kiện (Event-Driven Architecture). Hệ thống tự động hóa toàn bộ luồng nghiệp vụ từ lúc khách hàng đặt món, đồng bộ trừ/hoàn kho thời gian thực, gửi thông báo đa kênh và bảo mật phân quyền nghiêm ngặt. 
+
+SunStack sử dụng RESTful APIs đồng bộ thông qua API Gateway cho các luồng nghiệp vụ chặn và Apache Kafka cho các luồng giao tiếp bất đồng bộ ổn định, bền bỉ giữa các dịch vụ phân tán.
+>>>>>>> 65b4b0ad39ef38380923f96a6b8ed508dd5d1b85
 
 ---
 
