@@ -258,3 +258,33 @@ exports.deleteUser = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * Verify JWT token for Nginx auth_request
+ * GET /api/auth/verify
+ */
+exports.verifyToken = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ success: false, message: 'No token provided' });
+    }
+
+    const token = authHeader.split(' ')[1];
+    
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'food-ordering-jwt-secret-key-2024');
+      
+      // Set headers for Nginx to capture
+      res.setHeader('x-user-id', decoded.id);
+      res.setHeader('x-user-role', decoded.role);
+      res.setHeader('x-user-email', decoded.email);
+      
+      return res.status(200).json({ success: true, message: 'Authenticated' });
+    } catch (err) {
+      return res.status(401).json({ success: false, message: 'Invalid token' });
+    }
+  } catch (error) {
+    next(error);
+  }
+};

@@ -5,6 +5,9 @@ const authorize = require('../middleware/authorize');
 
 const router = express.Router();
 
+// ── Auth Verification Endpoint for Nginx auth_request (Public) ───────
+router.get('/api/auth/verify', userController.verifyToken);
+
 // ── Auth Endpoints (Public) ──────────────────────────────────────────
 router.post('/api/auth/register', [
   body('name', 'Name is required').notEmpty(),
