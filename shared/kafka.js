@@ -37,14 +37,21 @@ async function connectProducer() {
   if (producer) return producer;
 
   producer = kafka.producer();
-  try {
-    logger.info("Connecting Kafka Producer...");
-    await producer.connect();
-    logger.info("✅ Kafka Producer connected successfully.");
-    return producer;
-  } catch (error) {
-    logger.error("❌ Failed to connect Kafka Producer:", error);
-    throw error;
+  const maxRetries = 5;
+  let retryCount = 0;
+
+  while (retryCount < maxRetries) {
+    try {
+      logger.info(`Connecting Kafka Producer (Attempt ${retryCount + 1}/${maxRetries})...`);
+      await producer.connect();
+      logger.info("✅ Kafka Producer connected successfully.");
+      return producer;
+    } catch (error) {
+      retryCount++;
+      logger.error(`❌ Failed to connect Kafka Producer (Attempt ${retryCount}/${maxRetries}):`, error);
+      if (retryCount >= maxRetries) throw error;
+      await new Promise(resolve => setTimeout(resolve, 5000));
+    }
   }
 }
 
@@ -103,7 +110,8 @@ async function publishMessage(prod, topic, eventType, payload, key = null) {
  * @param {Function} messageHandler - Hàm callback xử lý message: async (eventType, data, message) => {}
  */
 async function startConsumer(groupId, topic, messageHandler) {
-  const consumer = kafka.consumer({ groupId });
+  // autoCommit: false to manually manage offsets (similar to XACK)
+  const consumer = kafka.consumer({ groupId, autoCommit: false });
 
   try {
     logger.info(`Connecting Kafka Consumer for group [${groupId}]...`);
@@ -114,40 +122,84 @@ async function startConsumer(groupId, topic, messageHandler) {
     await consumer.subscribe({ topic, fromBeginning: true });
 
     await consumer.run({
+      autoCommit: false, // Turn off automatic commits
       eachMessage: async ({ topic: msgTopic, partition, message }) => {
+        const rawValue = message.value.toString();
+        let parsedMessage = {};
         try {
-          const rawValue = message.value.toString();
-          const parsedMessage = JSON.parse(rawValue);
+          parsedMessage = JSON.parse(rawValue);
+        } catch (e) {
+          parsedMessage = { raw: rawValue };
+        }
 
-          const eventType =
-            parsedMessage.eventType ||
-            (message.headers && message.headers.eventType
-              ? message.headers.eventType.toString()
-              : "UNKNOWN");
-          const data = parsedMessage.data || parsedMessage;
+        const eventType = parsedMessage.eventType || "UNKNOWN";
+        const data = parsedMessage.data || parsedMessage;
 
-          logger.info(
-            `📥 Received [${eventType}] from [${msgTopic}] partition [${partition}]`,
-          );
+        logger.info(`📥 Received [${eventType}] from [${msgTopic}] partition [${partition}]`);
 
-          // Gọi hàm xử lý business logic
-          await messageHandler(eventType, data, message);
-        } catch (err) {
-          logger.error(
-            `❌ Error processing message in group [${groupId}] on partition [${partition}]:`,
-            err,
-          );
-          // Có thể triển khai DLQ (Dead Letter Queue) hoặc cơ chế retry nâng cao ở đây
+        // 1. Retry Mechanism
+        const maxMsgRetries = 3;
+        let attempt = 0;
+        let success = false;
+        let lastError = null;
+
+        while (attempt < maxMsgRetries && !success) {
+          try {
+            if (attempt > 0) {
+              const delay = attempt * 2000; // Backoff strategy
+              logger.info(`🔄 Retrying message [${eventType}] (Attempt ${attempt + 1}/${maxMsgRetries}) in ${delay}ms...`);
+              await new Promise(resolve => setTimeout(resolve, delay));
+            }
+            await messageHandler(eventType, data, message);
+            success = true;
+          } catch (err) {
+            attempt++;
+            lastError = err;
+            logger.warn(`⚠️ Error processing message [${eventType}] (Attempt ${attempt}/${maxMsgRetries}): ${err.message}`);
+          }
+        }
+
+        // 2. Dead Letter Queue (DLQ)
+        if (!success) {
+          logger.error(`❌ Message processing completely FAILED after ${maxMsgRetries} attempts in group [${groupId}].`);
+          
+          const dlqTopic = `${msgTopic}:dlq`; // Format: ":dlq" suffix
+          try {
+            logger.info(`📤 Sending failed message [${eventType}] to DLQ topic [${dlqTopic}]...`);
+            const dlqPayload = {
+              originalTopic: msgTopic,
+              originalGroup: groupId,
+              error: {
+                message: lastError.message,
+                stack: lastError.stack,
+              },
+              messageValue: rawValue,
+            };
+            
+            const activeProducer = producer || await connectProducer();
+            await publishMessage(activeProducer, dlqTopic, `${eventType}_FAILED`, dlqPayload, message.key);
+            logger.info(`✅ Successfully forwarded failed message to DLQ [${dlqTopic}].`);
+          } catch (dlqErr) {
+            logger.error(`🚨 CRITICAL FAILED to send message to DLQ: ${dlqErr.message}`);
+          }
+        }
+
+        // 3. Manual Commit Offset (XACK equivalent)
+        try {
+          const offsetToCommit = (BigInt(message.offset) + 1n).toString();
+          await consumer.commitOffsets([
+            { topic: msgTopic, partition, offset: offsetToCommit }
+          ]);
+          logger.info(`💾 Committed offset [${offsetToCommit}] for partition [${partition}]`);
+        } catch (commitErr) {
+          logger.error(`🚨 Failed to commit offset: ${commitErr.message}`);
         }
       },
     });
 
     return consumer;
   } catch (error) {
-    logger.error(
-      `❌ Failed to start Kafka Consumer for group [${groupId}]:`,
-      error,
-    );
+    logger.error(`❌ Failed to start Kafka Consumer for group [${groupId}]:`, error);
     throw error;
   }
 }

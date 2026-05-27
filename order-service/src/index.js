@@ -33,8 +33,21 @@ app.use(errorHandler);
 async function startServer() {
   try {
     // 1. Kết nối DB
-    await mongoose.connect(MONGODB_URI);
-    logger.info('✅ Kết nối MongoDB thành công (Order DB)');
+    const maxRetries = 5;
+    let retryCount = 0;
+    let dbConnected = false;
+    while (retryCount < maxRetries && !dbConnected) {
+      try {
+        await mongoose.connect(MONGODB_URI);
+        logger.info('✅ Kết nối MongoDB thành công (Order DB)');
+        dbConnected = true;
+      } catch (err) {
+        retryCount++;
+        logger.error(`❌ Kết nối MongoDB thất bại (Lần ${retryCount}/${maxRetries}): ${err.message}`);
+        if (retryCount >= maxRetries) throw err;
+        await new Promise(resolve => setTimeout(resolve, 5000));
+      }
+    }
 
     // 2. Kết nối Kafka Producer
     await connectProducer();
