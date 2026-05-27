@@ -39,12 +39,12 @@ const connectDB = async () => {
     try {
       const conn = await mongoose.connect(mongoURI);
       logger.info(
-        `✅ MongoDB connected: ${conn.connection.host}/${conn.connection.name}`,
+        `MongoDB connected: ${conn.connection.host}/${conn.connection.name}`,
       );
       return conn;
     } catch (error) {
       retryCount++;
-      logger.error(`❌ MongoDB connection error (Attempt ${retryCount}/${maxRetries}): ${error.message}`);
+      logger.error(`MongoDB connection error (Attempt ${retryCount}/${maxRetries}): ${error.message}`);
       if (retryCount >= maxRetries) {
         process.exit(1);
       }

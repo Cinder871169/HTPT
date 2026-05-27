@@ -46,10 +46,10 @@ const handleOrderEvents = async (eventType, data, message) => {
     });
 
     await notification.save();
-    logger.info(`✅ Đã tạo thông báo tự động cho User [${data.userId}] - Sự kiện: ${eventType}`);
+    logger.info(`Da tao thong bao tu dong cho User [${data.userId}] - Su kien: ${eventType}`);
 
   } catch (error) {
-    logger.error('❌ Lỗi khi xử lý event và lưu thông báo:', error);
+    logger.error('Loi khi xu ly event va luu thong bao:', error);
   }
 };
 
