@@ -10,6 +10,7 @@ export default function OwnerDashboard({ onToast }) {
   const { user } = useApp()
   const [tab, setTab] = useState(0)
   const [restaurant, setRestaurant] = useState(null)
+  const [myRestaurants, setMyRestaurants] = useState([])
   const [menu, setMenu] = useState([])
   const [orders, setOrders] = useState([])
   const [restaurantForm, setRestaurantForm] = useState({ name: '', address: '', phone: '', cuisine: '' })
@@ -17,35 +18,59 @@ export default function OwnerDashboard({ onToast }) {
   const [showMenuForm, setShowMenuForm] = useState(false)
   const [loading, setLoading] = useState(true)
 
+  // 1. Tải danh sách nhà hàng thuộc sở hữu của user
   useEffect(() => {
-    const load = async () => {
+    const loadRestaurants = async () => {
       if (!user?._id) return
       setLoading(true)
       try {
-        const rRes = await restaurantAPI.getAll()
-        const myRestaurant = rRes.data?.find(r => r.ownerId === user._id)
-        setRestaurant(myRestaurant || null)
-        if (myRestaurant) {
-          const [mRes, oRes] = await Promise.all([
-            restaurantAPI.getMenu(myRestaurant._id),
-            orderAPI.getRestaurantOrders(myRestaurant._id)
-          ])
-          setMenu(mRes.data || [])
-          setOrders(oRes.data || [])
+        const rRes = await restaurantAPI.getAll({ limit: 100 })
+        const owned = rRes.data?.data?.filter(r => r.ownerId === user._id) || []
+        setMyRestaurants(owned)
+        if (owned.length > 0) {
+          setRestaurant(owned[0])
         } else {
-          setMenu([])
-          setOrders([])
+          setRestaurant(null)
         }
       } catch (err) {
-        console.error("Error loading dashboard data:", err)
-        onToast('Lỗi khi tải dữ liệu nhà hàng.', 'error')
+        console.error("Error loading owner restaurants:", err)
+        onToast('Lỗi khi tải danh sách nhà hàng.', 'error')
+        setMyRestaurants([])
         setRestaurant(null)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadRestaurants()
+  }, [user, onToast])
+
+  // 2. Tải menu và orders khi restaurant thay đổi
+  useEffect(() => {
+    const loadDetails = async () => {
+      if (!restaurant?._id) {
         setMenu([])
         setOrders([])
-      } finally { setLoading(false) }
+        return
+      }
+      setLoading(true)
+      try {
+        const [mRes, oRes] = await Promise.all([
+          restaurantAPI.getMenu(restaurant._id),
+          orderAPI.getRestaurantOrders(restaurant._id)
+        ])
+        setMenu(mRes.data?.data || [])
+        setOrders(oRes.data?.data || [])
+      } catch (err) {
+        console.error("Error loading restaurant details:", err)
+        onToast('Lỗi khi tải thực đơn và đơn hàng.', 'error')
+        setMenu([])
+        setOrders([])
+      } finally {
+        setLoading(false)
+      }
     }
-    load()
-  }, [user, onToast])
+    loadDetails()
+  }, [restaurant, onToast])
 
   useEffect(() => {
     if (restaurant) setRestaurantForm(restaurant)
@@ -56,10 +81,14 @@ export default function OwnerDashboard({ onToast }) {
     try {
       if (restaurant) {
         const res = await restaurantAPI.update(restaurant._id, restaurantForm)
-        setRestaurant(res.data)
+        const updated = res.data?.data
+        setRestaurant(updated)
+        setMyRestaurants(prev => prev.map(r => r._id === updated._id ? updated : r))
       } else {
         const res = await restaurantAPI.create(restaurantForm)
-        setRestaurant(res.data)
+        const created = res.data?.data
+        setRestaurant(created)
+        setMyRestaurants(prev => [...prev, created])
       }
       onToast('Đã lưu thông tin nhà hàng!', 'success')
     } catch (err) {
@@ -74,7 +103,7 @@ export default function OwnerDashboard({ onToast }) {
     const item = { ...menuForm, price: Number(menuForm.price), stock: Number(menuForm.stock), isAvailable: Number(menuForm.stock) > 0 }
     try {
       const res = await restaurantAPI.addMenuItem(restaurant._id, item)
-      setMenu(prev => [...prev, res.data])
+      setMenu(prev => [...prev, res.data?.data])
       setMenuForm({ name: '', price: '', category: '', stock: '', description: '' })
       setShowMenuForm(false)
       onToast('Đã thêm món ăn!', 'success')
@@ -132,9 +161,44 @@ export default function OwnerDashboard({ onToast }) {
 
   return (
     <div>
-      <div style={{ marginBottom: 28 }}>
-        <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 28, fontWeight: 800 }}>Dashboard Chủ Nhà Hàng</h2>
-        <p style={{ color: 'var(--text-muted)', marginTop: 4 }}>Quản lý nhà hàng, thực đơn và đơn hàng của bạn</p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28, flexWrap: 'wrap', gap: 16 }}>
+        <div>
+          <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 28, fontWeight: 800 }}>Dashboard Chủ Nhà Hàng</h2>
+          <p style={{ color: 'var(--text-muted)', marginTop: 4 }}>Quản lý nhà hàng, thực đơn và đơn hàng của bạn</p>
+        </div>
+        
+        {myRestaurants.length > 1 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-muted)' }}>Đang xem nhà hàng:</span>
+            <div style={{ position: 'relative' }}>
+              <select 
+                value={restaurant?._id || ''} 
+                onChange={e => {
+                  const selectedId = e.target.value
+                  const found = myRestaurants.find(r => r._id === selectedId)
+                  if (found) setRestaurant(found)
+                }}
+                style={{
+                  padding: '10px 36px 10px 18px',
+                  borderRadius: 50,
+                  border: '1.5px solid var(--primary)',
+                  background: '#fff',
+                  color: 'var(--primary)',
+                  fontWeight: 700,
+                  fontSize: 14,
+                  cursor: 'pointer',
+                  outline: 'none',
+                  appearance: 'none', // Remove native arrow
+                }}
+              >
+                {myRestaurants.map(r => (
+                  <option key={r._id} value={r._id}>{r.name}</option>
+                ))}
+              </select>
+              <ChevronDown size={16} style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--primary)', pointerEvents: 'none' }} />
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="tabs" style={{ marginBottom: 28 }}>

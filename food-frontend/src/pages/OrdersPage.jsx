@@ -22,7 +22,7 @@ export default function OrdersPage({ onToast }) {
       setLoading(true)
       try {
         const res = await orderAPI.getMyOrders()
-        setOrders(res.data || [])
+        setOrders(res.data?.data || [])
       } catch (err) {
         console.error("Error loading orders:", err)
         onToast('Không thể tải danh sách đơn hàng.', 'error')

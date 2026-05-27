@@ -56,7 +56,7 @@ export const userAPI = {
   getProfile: () => api.get('/users/profile'),
   updateProfile: (data) => api.put('/users/profile', data),
   // Admin only
-  getAllUsers: () => api.get('/users'),
+  getAllUsers: (params) => api.get('/users', { params }),
   deleteUser: (id) => api.delete(`/users/${id}`),
 }
 
@@ -64,7 +64,7 @@ export const userAPI = {
 // Restaurant Endpoints
 // ============================================================
 export const restaurantAPI = {
-  getAll: () => api.get('/restaurants'),
+  getAll: (params) => api.get('/restaurants', { params }),
   getMenu: (id) => api.get(`/restaurants/${id}/menu`),
   create: (data) => api.post('/restaurants', data),
   update: (id, data) => api.put(`/restaurants/${id}`, data),

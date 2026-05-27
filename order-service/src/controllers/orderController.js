@@ -8,7 +8,8 @@ const logger = createLogger('order-controller');
 // [POST] Tạo đơn hàng mới
 exports.createOrder = async (req, res, next) => {
   try {
-    const { userId, restaurantId, items, totalAmount, deliveryAddress, note } = req.body;
+    const { restaurantId, items, totalAmount, deliveryAddress, note } = req.body;
+    const userId = req.headers['x-user-id'] || req.body.userId;
 
     const newOrder = new Order({
       userId,

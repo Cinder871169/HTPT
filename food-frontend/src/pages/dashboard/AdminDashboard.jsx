@@ -19,8 +19,8 @@ export default function AdminDashboard({ onToast }) {
     const load = async () => {
       setLoading(true)
       try {
-        const [uRes, rRes] = await Promise.all([userAPI.getAllUsers(), restaurantAPI.getAll()])
-        setUsers(uRes.data || []); setRestaurants(rRes.data || [])
+        const [uRes, rRes] = await Promise.all([userAPI.getAllUsers({ limit: 100 }), restaurantAPI.getAll({ limit: 100 })])
+        setUsers(uRes.data?.data || []); setRestaurants(rRes.data?.data || [])
       } catch (err) {
         console.error("Error loading admin data:", err)
         onToast && onToast('Không thể tải thông tin hệ thống.', 'error')
@@ -137,7 +137,7 @@ export default function AdminDashboard({ onToast }) {
                 {restaurants.map(r => (
                   <tr key={r._id}>
                     <td style={{ fontWeight: 600 }}>{r.name}</td>
-                    <td style={{ color: 'var(--text-muted)' }}>{r.cuisine}</td>
+                    <td style={{ color: 'var(--text-muted)' }}>{Array.isArray(r.cuisine) ? r.cuisine.join(', ') : r.cuisine}</td>
                     <td style={{ color: 'var(--text-muted)', fontSize: 13 }}>{r.ownerEmail || '—'}</td>
                     <td>
                       <span style={{ padding: '3px 10px', borderRadius: 50, fontSize: 12, fontWeight: 600, background: r.isActive ? '#d1fae5' : '#fee2e2', color: r.isActive ? '#065f46' : '#991b1b' }}>

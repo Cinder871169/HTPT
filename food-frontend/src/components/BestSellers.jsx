@@ -13,10 +13,10 @@ export default function BestSellers({ onToast }) {
     const load = async () => {
       try {
         const res = await restaurantAPI.getAll()
-        const active = res.data?.filter(r => r.isActive !== false) || []
+        const active = res.data?.data?.filter(r => r.isActive !== false) || []
         if (active.length > 0) {
           const menuRes = await restaurantAPI.getMenu(active[0]._id)
-          const menuItems = (menuRes.data || []).slice(0, 3).map((item, idx) => ({
+          const menuItems = (menuRes.data?.data || []).slice(0, 3).map((item, idx) => ({
             ...item,
             rank: idx + 1,
             emoji: item.emoji || ['🍔', '🍜', '🍣'][idx % 3],

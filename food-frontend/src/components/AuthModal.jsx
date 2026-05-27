@@ -20,7 +20,7 @@ export default function AuthModal({ onToast }) {
     setLoading(true)
     try {
       const res = await authAPI.login({ email: form.email, password: form.password })
-      const { user, token } = res.data
+      const { user, token } = res.data.data
       login(user, token)
       onToast(`Chào mừng trở lại, ${user.name}! 🎉`, 'success')
       close()
@@ -36,7 +36,7 @@ export default function AuthModal({ onToast }) {
     setLoading(true)
     try {
       const res = await authAPI.register(form)
-      const { user, token } = res.data
+      const { user, token } = res.data.data
       login(user, token)
       onToast(`Đăng ký thành công! Chào ${user.name} 🎉`, 'success')
       close()

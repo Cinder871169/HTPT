@@ -16,7 +16,7 @@ export default function MenuModal({ restaurant, onClose, onToast }) {
       setLoading(true)
       try {
         const res = await restaurantAPI.getMenu(restaurant._id)
-        setMenu(res.data || [])
+        setMenu(res.data?.data || [])
       } catch (err) {
         console.error("Error loading menu:", err)
         onToast && onToast('Không thể tải thực đơn của nhà hàng.', 'error')

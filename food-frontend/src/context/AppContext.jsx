@@ -17,8 +17,8 @@ export function AppProvider({ children }) {
       const loadProfile = async () => {
         try {
           const res = await userAPI.getProfile()
-          setUser(res.data)
-          setRole(res.data.role)
+          setUser(res.data?.data)
+          setRole(res.data?.data?.role)
         } catch (err) {
           console.error("Error restoring user session:", err)
         }
@@ -80,7 +80,7 @@ export function AppProvider({ children }) {
   const fetchNotifications = useCallback(async () => {
     try {
       const res = await notificationAPI.getAll()
-      setNotifications(res.data || [])
+      setNotifications(res.data?.data || [])
     } catch (err) {
       console.error("Error fetching notifications:", err)
       setNotifications([])
