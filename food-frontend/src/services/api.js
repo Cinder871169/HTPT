@@ -2,8 +2,7 @@ import axios from 'axios'
 
 // ============================================================
 // Axios Instance — API Service
-// Ref: implementation_plan.md § 1 (Base URL + JWT Interceptor)
-// Base URL: http://localhost:3000/api (via Vite proxy)
+// Base URL: /api
 // ============================================================
 
 const api = axios.create({
