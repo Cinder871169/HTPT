@@ -45,11 +45,11 @@ const startServer = async () => {
     await seedAdmin();
 
     app.listen(PORT, () => {
-      logger.info(`✅ User Service is running on port ${PORT}`);
-      logger.info(`🩺 Health check active at: http://localhost:${PORT}/health`);
+      logger.info(`User Service is running on port ${PORT}`);
+      logger.info(`Health check active at: http://localhost:${PORT}/health`);
     });
   } catch (error) {
-    logger.error(`❌ Failed to start server: ${error.message}`);
+    logger.error(`Failed to start server: ${error.message}`);
     process.exit(1);
   }
 };
