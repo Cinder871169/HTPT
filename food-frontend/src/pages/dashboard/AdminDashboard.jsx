@@ -20,7 +20,9 @@ export default function AdminDashboard({ onToast }) {
       setLoading(true)
       try {
         const [uRes, rRes] = await Promise.all([userAPI.getAllUsers({ limit: 100 }), restaurantAPI.getAll({ limit: 100 })])
-        setUsers(uRes.data?.data || []); setRestaurants(rRes.data?.data || [])
+        const usersList = uRes.data?.data?.users || (Array.isArray(uRes.data?.data) ? uRes.data.data : [])
+        setUsers(usersList)
+        setRestaurants(rRes.data?.data || [])
       } catch (err) {
         console.error("Error loading admin data:", err)
         onToast && onToast('Không thể tải thông tin hệ thống.', 'error')

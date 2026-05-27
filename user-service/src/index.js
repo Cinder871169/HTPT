@@ -1,16 +1,16 @@
-const path = require('path');
+const path = require("path");
 // Load environment variables from the root-level .env file
-require('dotenv').config({ path: path.resolve(__dirname, '..', '..', '.env') });
+require("dotenv").config({ path: path.resolve(__dirname, "..", "..", ".env") });
 
-const express = require('express');
-const cors = require('cors');
-const morgan = require('morgan');
+const express = require("express");
+const cors = require("cors");
+const morgan = require("morgan");
 
-const connectDB = require('./config/db');
-const seedAdmin = require('./config/seed');
-const userRoutes = require('./routes/userRoutes');
-const errorHandler = require('./middleware/errorHandler');
-const logger = require('./utils/logger');
+const connectDB = require("./config/db");
+const seedAdmin = require("./config/seed");
+const userRoutes = require("./routes/userRoutes");
+const errorHandler = require("./middleware/errorHandler");
+const logger = require("./utils/logger");
 
 const app = express();
 const PORT = process.env.USER_SERVICE_PORT || 3001;
@@ -18,13 +18,13 @@ const PORT = process.env.USER_SERVICE_PORT || 3001;
 // ── Global middleware ───────────────────────────────────────────────
 app.use(cors());
 app.use(express.json());
-app.use(morgan('dev'));
+app.use(morgan("dev"));
 
 // ── Health-check endpoint ───────────────────────────────────────────
-app.get('/health', (_req, res) => {
+app.get("/health", (_req, res) => {
   res.status(200).json({
-    status: 'OK',
-    service: 'user-service',
+    status: "OK",
+    service: "user-service",
     timestamp: new Date().toISOString(),
   });
 });

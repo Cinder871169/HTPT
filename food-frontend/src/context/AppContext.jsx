@@ -21,6 +21,10 @@ export function AppProvider({ children }) {
           setRole(res.data?.data?.role)
         } catch (err) {
           console.error("Error restoring user session:", err)
+          const status = err.response?.status
+          if (status === 401 || status === 404) {
+            logout()
+          }
         }
       }
       loadProfile()
