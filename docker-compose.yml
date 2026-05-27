@@ -184,6 +184,20 @@ services:
     networks:
       - app-network
 
+  # ──────────────────────────────────────────────
+  # Food Ordering Frontend (Cổng 80)
+  # ──────────────────────────────────────────────
+  food-frontend:
+    build: ./food-frontend
+    container_name: food-ordering-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - api-gateway
+    networks:
+      - app-network
+
 networks:
   app-network:
     driver: bridge

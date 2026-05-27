@@ -3,6 +3,34 @@ const { createLogger } = require('../shared/logger');
 
 const logger = createLogger('notification-controller');
 
+// [GET] Lấy thông báo của user hiện tại (từ header x-user-id)
+exports.getMyNotifications = async (req, res, next) => {
+  try {
+    const userId = req.headers['x-user-id'];
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Không xác định được người dùng' });
+    }
+    req.params.userId = userId;
+    return exports.getUserNotifications(req, res, next);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// [PUT] Đánh dấu tất cả đã đọc (từ header x-user-id)
+exports.markAllAsReadByHeader = async (req, res, next) => {
+  try {
+    const userId = req.headers['x-user-id'];
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Không xác định được người dùng' });
+    }
+    req.params.userId = userId;
+    return exports.markAllAsRead(req, res, next);
+  } catch (error) {
+    next(error);
+  }
+};
+
 // [GET] Lấy danh sách thông báo của User
 exports.getUserNotifications = async (req, res, next) => {
   try {

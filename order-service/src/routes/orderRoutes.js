@@ -5,6 +5,10 @@ const orderController = require('../controllers/orderController');
 // Tạo đơn hàng
 router.post('/', orderController.createOrder);
 
+// Frontend-compatible routes (userId from header)
+router.get('/', orderController.getMyOrders);
+router.delete('/:id', orderController.cancelOrder);
+
 // Lấy danh sách theo đối tượng
 router.get('/user/:userId', orderController.getUserOrders);
 router.get('/restaurant/:restaurantId', orderController.getRestaurantOrders);

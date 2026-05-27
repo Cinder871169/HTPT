@@ -42,6 +42,20 @@ exports.createOrder = async (req, res, next) => {
   }
 };
 
+// [GET] Lấy đơn hàng của user hiện tại (từ header x-user-id)
+exports.getMyOrders = async (req, res, next) => {
+  try {
+    const userId = req.headers['x-user-id'];
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Không xác định được người dùng' });
+    }
+    req.params.userId = userId;
+    return exports.getUserOrders(req, res, next);
+  } catch (error) {
+    next(error);
+  }
+};
+
 // [GET] Lấy danh sách đơn hàng của một User
 exports.getUserOrders = async (req, res, next) => {
   try {
